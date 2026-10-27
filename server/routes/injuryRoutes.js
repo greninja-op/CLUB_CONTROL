@@ -24,9 +24,9 @@ router.post('/', authMiddleware, requireRole(['coach', 'admin']), loggerMiddlewa
  * GET /api/injuries
  * Get all injuries with pagination and filtering
  * 
- * @access Coach, Manager, Admin
+ * @access Coach, Manager, Admin, Player
  */
-router.get('/', authMiddleware, requireRole(['coach', 'manager', 'admin']), injuryController.getAllInjuries);
+router.get('/', authMiddleware, requireRole(['coach', 'manager', 'admin', 'player']), injuryController.getAllInjuries);
 
 /**
  * GET /api/injuries/active

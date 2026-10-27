@@ -59,20 +59,22 @@ const loggerMiddleware = (req, res, next) => {
 
           // pathParts[0]='api', pathParts[1]='collection'
           if (pathParts.length >= 2) {
-            // Convert route name to collection name
             const routeName = pathParts[1];
-            targetCollection = routeName.charAt(0).toUpperCase() + routeName.slice(1, -1);
-            
-            // Handle special cases
-            if (routeName === 'training') targetCollection = 'TrainingSession';
-            if (routeName === 'disciplinary') targetCollection = 'DisciplinaryAction';
-            if (routeName === 'leave') targetCollection = 'LeaveRequest';
-            if (routeName === 'injuries') targetCollection = 'Injury';
-            if (routeName === 'inventory') targetCollection = 'Inventory';
-            if (routeName === 'settings') targetCollection = 'Settings';
-            if (routeName === 'profiles') targetCollection = 'Profile';
-            if (routeName === 'fixtures') targetCollection = 'Fixture';
-            if (routeName === 'documents') targetCollection = 'Document';
+            const collectionByRoute = {
+              users: 'User',
+              training: 'TrainingSession',
+              disciplinary: 'DisciplinaryAction',
+              leave: 'LeaveRequest',
+              injuries: 'Injury',
+              inventory: 'Inventory',
+              settings: 'Settings',
+              profiles: 'Profile',
+              fixtures: 'Fixture',
+              documents: 'Document',
+              finance: 'Finance',
+              auth: 'User'
+            };
+            targetCollection = collectionByRoute[routeName] || 'Unknown';
           }
 
           // Extract target ID from response data or route params

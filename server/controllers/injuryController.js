@@ -10,6 +10,25 @@ const { sanitizeText } = require('../utils/sanitize');
  * Validates Requirements: 14.1, 14.2, 14.3, 14.4
  */
 
+const DESCRIPTION_MAX = 500;
+
+/**
+ * JSON shape the React UI already reads.
+ * `notes` is the schema field `description`; `recoveryDate` is `actualRecovery`.
+ */
+const toInjuryResponse = (injury) => ({
+  id: injury._id,
+  playerId: injury.playerId,
+  injuryType: injury.injuryType,
+  severity: injury.severity,
+  expectedRecovery: injury.expectedRecovery,
+  notes: injury.description,
+  resolved: injury.resolved,
+  recoveryDate: injury.actualRecovery,
+  dateLogged: injury.dateLogged,
+  loggedBy: injury.loggedBy
+});
+
 /**
  * Log a new injury
  * POST /api/injuries
@@ -20,11 +39,11 @@ const logInjury = async (req, res) => {
   try {
     const { playerId, injuryType, severity, expectedRecovery, notes } = req.body;
 
-    // Validate required fields
-    if (!playerId || !injuryType || !severity) {
+    // Validate required fields (expectedRecovery is required by the schema)
+    if (!playerId || !injuryType || !severity || !expectedRecovery) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: playerId, injuryType, and severity are required'
+        message: 'Missing required fields: playerId, injuryType, severity, and expectedRecovery are required'
       });
     }
 
@@ -48,15 +67,15 @@ const logInjury = async (req, res) => {
 
     // Sanitize text inputs to prevent XSS (Requirement 21.5)
     const sanitizedInjuryType = sanitizeText(injuryType);
-    const sanitizedNotes = notes ? sanitizeText(notes) : null;
+    const sanitizedNotes = notes ? sanitizeText(notes) : '';
 
-    // Create injury record
+    // Create injury record. Notes are stored on description (strict schema).
     const injury = new Injury({
       playerId,
       injuryType: sanitizedInjuryType,
       severity,
-      expectedRecovery: expectedRecovery ? new Date(expectedRecovery) : null,
-      notes: sanitizedNotes,
+      expectedRecovery: new Date(expectedRecovery),
+      description: sanitizedNotes ? sanitizedNotes.slice(0, DESCRIPTION_MAX) : undefined,
       loggedBy: req.user.id
     });
 
@@ -99,17 +118,7 @@ const logInjury = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Injury logged successfully',
-      injury: {
-        id: injury._id,
-        playerId: injury.playerId,
-        injuryType: injury.injuryType,
-        severity: injury.severity,
-        expectedRecovery: injury.expectedRecovery,
-        notes: injury.notes,
-        resolved: injury.resolved,
-        dateLogged: injury.dateLogged,
-        loggedBy: injury.loggedBy
-      }
+      injury: toInjuryResponse(injury)
     });
   } catch (error) {
     console.error('Log injury error:', error);
@@ -136,6 +145,24 @@ const getAllInjuries = async (req, res) => {
     // Build query filter
     const filter = {};
 
+    // Players may only see injuries linked to their own profile
+    if (req.user && req.user.role === 'player') {
+      const profile = await Profile.findOne({ userId: req.user.id });
+      if (!profile) {
+        return res.status(200).json({
+          success: true,
+          injuries: [],
+          pagination: {
+            total: 0,
+            page,
+            limit,
+            pages: 0
+          }
+        });
+      }
+      filter.playerId = profile._id;
+    }
+
     // Filter by resolved status
     if (req.query.resolved !== undefined) {
       filter.resolved = req.query.resolved === 'true';
@@ -154,18 +181,7 @@ const getAllInjuries = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      injuries: injuries.map(injury => ({
-        id: injury._id,
-        playerId: injury.playerId,
-        injuryType: injury.injuryType,
-        severity: injury.severity,
-        expectedRecovery: injury.expectedRecovery,
-        notes: injury.notes,
-        resolved: injury.resolved,
-        recoveryDate: injury.recoveryDate,
-        dateLogged: injury.dateLogged,
-        loggedBy: injury.loggedBy
-      })),
+      injuries: injuries.map(toInjuryResponse),
       pagination: {
         total,
         page,
@@ -211,12 +227,18 @@ const markRecovered = async (req, res) => {
       });
     }
 
-    // Mark as recovered
+    // Mark as recovered. Client sends recoveryDate; schema field is actualRecovery.
     injury.resolved = true;
-    injury.recoveryDate = recoveryDate ? new Date(recoveryDate) : new Date();
-    
+    injury.actualRecovery = recoveryDate ? new Date(recoveryDate) : new Date();
+
     if (notes) {
-      injury.notes = injury.notes ? `${injury.notes}\nRecovery: ${notes}` : `Recovery: ${notes}`;
+      const sanitizedNotes = sanitizeText(notes);
+      if (sanitizedNotes) {
+        const recoveryNote = `Recovery: ${sanitizedNotes}`;
+        const existing = injury.description ? String(injury.description) : '';
+        const combined = existing ? `${existing}\n${recoveryNote}` : recoveryNote;
+        injury.description = combined.slice(0, DESCRIPTION_MAX);
+      }
     }
 
     await injury.save();
@@ -236,7 +258,7 @@ const markRecovered = async (req, res) => {
       targetId: injury._id,
       changes: {
         resolved: { from: false, to: true },
-        recoveryDate: injury.recoveryDate,
+        recoveryDate: injury.actualRecovery,
         fitnessStatusUpdated: 'Yellow'
       }
     });
@@ -244,18 +266,7 @@ const markRecovered = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Injury marked as recovered successfully',
-      injury: {
-        id: injury._id,
-        playerId: injury.playerId,
-        injuryType: injury.injuryType,
-        severity: injury.severity,
-        expectedRecovery: injury.expectedRecovery,
-        notes: injury.notes,
-        resolved: injury.resolved,
-        recoveryDate: injury.recoveryDate,
-        dateLogged: injury.dateLogged,
-        loggedBy: injury.loggedBy
-      }
+      injury: toInjuryResponse(injury)
     });
   } catch (error) {
     console.error('Mark recovered error:', error);
@@ -284,16 +295,7 @@ const getActiveInjuries = async (req, res) => {
     res.status(200).json({
       success: true,
       count: activeInjuries.length,
-      injuries: activeInjuries.map(injury => ({
-        id: injury._id,
-        playerId: injury.playerId,
-        injuryType: injury.injuryType,
-        severity: injury.severity,
-        expectedRecovery: injury.expectedRecovery,
-        notes: injury.notes,
-        dateLogged: injury.dateLogged,
-        loggedBy: injury.loggedBy
-      }))
+      injuries: activeInjuries.map(toInjuryResponse)
     });
   } catch (error) {
     console.error('Get active injuries error:', error);

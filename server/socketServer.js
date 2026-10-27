@@ -16,15 +16,13 @@ const { setUserOnline, setUserOffline } = require('./utils/socketIO');
  * Initialize Socket.io server with authentication middleware
  * 
  * @param {http.Server} server - HTTP server instance
- * @param {Object} corsOptions - CORS configuration options
+ * @param {Object} corsOptions - Socket.io server options (the object passed from server.js, including cors)
  * @returns {SocketIO.Server} Configured Socket.io server instance
  */
 function initializeSocketServer(server, corsOptions) {
   const { Server } = require('socket.io');
-  
-  const io = new Server(server, {
-    cors: corsOptions
-  });
+
+  const io = new Server(server, corsOptions);
 
   // Authentication middleware for socket connections
   io.use((socket, next) => {

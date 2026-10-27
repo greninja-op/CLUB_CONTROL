@@ -24,9 +24,9 @@ router.post('/', authMiddleware, requireRole(['coach', 'admin']), loggerMiddlewa
  * GET /api/disciplinary
  * Get all disciplinary actions with pagination and filtering
  * 
- * @access Coach, Manager, Admin
+ * @access Coach, Manager, Admin, Player
  */
-router.get('/', authMiddleware, requireRole(['coach', 'manager', 'admin']), disciplinaryController.getAllActions);
+router.get('/', authMiddleware, requireRole(['coach', 'manager', 'admin', 'player']), disciplinaryController.getAllActions);
 
 /**
  * GET /api/disciplinary/pending

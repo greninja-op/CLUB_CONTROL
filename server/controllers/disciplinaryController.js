@@ -126,6 +126,24 @@ const getAllActions = async (req, res) => {
     // Build query filter
     const filter = {};
 
+    // Players may only see fines linked to their own profile
+    if (req.user && req.user.role === 'player') {
+      const profile = await Profile.findOne({ userId: req.user.id });
+      if (!profile) {
+        return res.status(200).json({
+          success: true,
+          actions: [],
+          pagination: {
+            total: 0,
+            page,
+            limit,
+            pages: 0
+          }
+        });
+      }
+      filter.playerId = profile._id;
+    }
+
     // Filter by payment status
     if (req.query.isPaid !== undefined) {
       filter.isPaid = req.query.isPaid === 'true';

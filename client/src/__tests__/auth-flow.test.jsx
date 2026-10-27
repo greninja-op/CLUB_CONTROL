@@ -45,7 +45,7 @@ describe('Authentication Flow Unit Tests', () => {
         </MemoryRouter>
       )
 
-      expect(screen.getByLabelText(/email address/i)).toBeInTheDocument()
+      expect(screen.getByLabelText(/email or full name/i)).toBeInTheDocument()
       expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
     })
@@ -65,7 +65,7 @@ describe('Authentication Flow Unit Tests', () => {
       fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
 
       await waitFor(() => {
-        expect(screen.getByText(/please enter both email and password/i)).toBeInTheDocument()
+        expect(screen.getByText(/please enter your email\/name and password/i)).toBeInTheDocument()
       })
     })
 
@@ -89,7 +89,7 @@ describe('Authentication Flow Unit Tests', () => {
         </MemoryRouter>
       )
 
-      fireEvent.change(screen.getByLabelText(/email address/i), {
+      fireEvent.change(screen.getByLabelText(/email or full name/i), {
         target: { value: 'test@example.com' }
       })
       fireEvent.change(screen.getByLabelText(/password/i), {
@@ -123,7 +123,7 @@ describe('Authentication Flow Unit Tests', () => {
         </MemoryRouter>
       )
 
-      fireEvent.change(screen.getByLabelText(/email address/i), {
+      fireEvent.change(screen.getByLabelText(/email or full name/i), {
         target: { value: 'test@example.com' }
       })
       fireEvent.change(screen.getByLabelText(/password/i), {

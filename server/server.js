@@ -37,7 +37,8 @@ const io = initializeSocketServer(server, {
   cors: {
     origin: [
       process.env.CLIENT_URL || 'http://localhost:5173',
-      'http://localhost:5174' // Allow alternate port if 5173 is in use
+      'http://localhost:5174', // Allow alternate port if 5173 is in use
+      'http://localhost:5175' // Allow alternate port if 5173/5174 are in use
     ],
     credentials: true
   }

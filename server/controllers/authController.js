@@ -97,7 +97,7 @@ const login = async (identifier, password) => {
       },
       process.env.JWT_SECRET,
       {
-        expiresIn: '8h' // 8 hours as specified in requirements
+        expiresIn: process.env.JWT_EXPIRY || '8h'
       }
     );
 

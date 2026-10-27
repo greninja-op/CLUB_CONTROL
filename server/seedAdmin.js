@@ -2,6 +2,7 @@ const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const User = require('./models/User');
+const Profile = require('./models/Profile');
 
 dotenv.config();
 
@@ -29,11 +30,21 @@ const seedAdmin = async () => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    await User.create({
+    const adminUser = await User.create({
       email,
       passwordHash,
       role: 'admin'
     });
+
+    const existingProfile = await Profile.findOne({ userId: adminUser._id });
+    if (!existingProfile) {
+      const localPart = String(email).split('@')[0].trim().slice(0, 100);
+      await Profile.create({
+        userId: adminUser._id,
+        fullName: localPart,
+        position: 'Staff'
+      });
+    }
 
     console.log(`Admin user created successfully: ${email}`);
     await mongoose.connection.close();

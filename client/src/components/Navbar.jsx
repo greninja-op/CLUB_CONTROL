@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useSocket } from '../contexts/SocketContext'
@@ -16,10 +16,6 @@ const Navbar = ({ menuItems, activeSection, onMenuClick }) => {
   const [scrolled, setScrolled] = useState(false)
   const [showAccountMenu, setShowAccountMenu] = useState(false)
   const [density, setDensity] = useState(() => localStorage.getItem('uiDensity') || 'comfortable')
-  const menuShellRef = useRef(null)
-  const menuItemRefs = useRef({})
-  const [menuHighlight, setMenuHighlight] = useState({ left: 0, width: 0, opacity: 0 })
-
   // Fetch club settings on mount
   const fetchSettings = async () => {
     try {
@@ -100,39 +96,6 @@ const Navbar = ({ menuItems, activeSection, onMenuClick }) => {
       ? settings.logoUrl
       : `${API_URL}${settings.logoUrl}`
     : null
-
-  const updateMenuHighlight = useCallback(() => {
-    if (!showMenu || !activeMenuId) {
-      setMenuHighlight((current) => ({ ...current, opacity: 0 }))
-      return
-    }
-
-    const shell = menuShellRef.current
-    const activeButton = menuItemRefs.current[activeMenuId]
-
-    if (!shell || !activeButton) {
-      setMenuHighlight((current) => ({ ...current, opacity: 0 }))
-      return
-    }
-
-    const shellRect = shell.getBoundingClientRect()
-    const buttonRect = activeButton.getBoundingClientRect()
-
-    setMenuHighlight({
-      left: buttonRect.left - shellRect.left,
-      width: buttonRect.width,
-      opacity: 1
-    })
-  }, [activeMenuId, showMenu])
-
-  useLayoutEffect(() => {
-    updateMenuHighlight()
-  }, [updateMenuHighlight])
-
-  useEffect(() => {
-    window.addEventListener('resize', updateMenuHighlight)
-    return () => window.removeEventListener('resize', updateMenuHighlight)
-  }, [updateMenuHighlight])
 
   return (
     <nav style={{
